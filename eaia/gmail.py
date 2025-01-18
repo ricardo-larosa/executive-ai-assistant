@@ -22,8 +22,7 @@ from eaia.schemas import EmailData
 
 logger = logging.getLogger(__name__)
 _SCOPES = [
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/gmail.modify"
 ]
 _ROOT = Path(__file__).parent.absolute()
 _PORT = 54191
@@ -285,46 +284,6 @@ class CalInput(BaseModel):
     )
 
 
-@tool(args_schema=CalInput)
-def get_events_for_days(date_strs: list[str]):
-    """
-    Retrieves events for a list of days. If you want to check for multiple days, call this with multiple inputs.
-
-    Input in the format of ['dd-mm-yyyy', 'dd-mm-yyyy']
-
-    Args:
-    date_strs: The days for which to retrieve events (dd-mm-yyyy string).
-
-    Returns: availability for those days.
-    """
-
-    creds = get_credentials(None, None)
-    service = build("calendar", "v3", credentials=creds)
-    results = ""
-    for date_str in date_strs:
-        # Convert the date string to a datetime.date object
-        day = datetime.strptime(date_str, "%d-%m-%Y").date()
-
-        start_of_day = datetime.combine(day, time.min).isoformat() + "Z"
-        end_of_day = datetime.combine(day, time.max).isoformat() + "Z"
-
-        events_result = (
-            service.events()
-            .list(
-                calendarId="primary",
-                timeMin=start_of_day,
-                timeMax=end_of_day,
-                singleEvents=True,
-                orderBy="startTime",
-            )
-            .execute()
-        )
-        events = events_result.get("items", [])
-
-        results += f"***FOR DAY {date_str}***\n\n" + print_events(events)
-    return results
-
-
 def format_datetime_with_timezone(dt_str, timezone="US/Pacific"):
     """
     Formats a datetime string with the specified timezone.
@@ -368,52 +327,3 @@ def print_events(events):
         result += f"Ends: {end}\n"
         result += "-" * 40 + "\n"
     return result
-
-
-def send_calendar_invite(
-    emails, title, start_time, end_time, email_address, timezone="PST"
-):
-    creds = get_credentials(None, None)
-    service = build("calendar", "v3", credentials=creds)
-
-    # Parse the start and end times
-    start_datetime = datetime.fromisoformat(start_time)
-    end_datetime = datetime.fromisoformat(end_time)
-    emails = list(set(emails + [email_address]))
-    event = {
-        "summary": title,
-        "start": {
-            "dateTime": start_datetime.isoformat(),
-            "timeZone": timezone,
-        },
-        "end": {
-            "dateTime": end_datetime.isoformat(),
-            "timeZone": timezone,
-        },
-        "attendees": [{"email": email} for email in emails],
-        "reminders": {
-            "useDefault": False,
-            "overrides": [
-                {"method": "email", "minutes": 24 * 60},
-                {"method": "popup", "minutes": 10},
-            ],
-        },
-        "conferenceData": {
-            "createRequest": {
-                "requestId": f"{title}-{start_datetime.isoformat()}",
-                "conferenceSolutionKey": {"type": "hangoutsMeet"},
-            }
-        },
-    }
-
-    try:
-        service.events().insert(
-            calendarId="primary",
-            body=event,
-            sendNotifications=True,
-            conferenceDataVersion=1,
-        ).execute()
-        return True
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return False

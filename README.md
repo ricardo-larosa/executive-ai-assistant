@@ -51,7 +51,6 @@ The configuration for EAIA can be found in `eaia/main/config.yaml`. Every key in
 - `name`: First name of user
 - `background`: Basic info on who the user is
 - `timezone`: Default timezone the user is in
-- `schedule_preferences`: Any preferences for how calendar meetings are scheduled. E.g. length, name of meetings, etc
 - `background_preferences`: Any background information that may be needed when responding to emails. E.g. coworkers to loop in, etc.
 - `response_preferences`: Any preferences for what information to include in emails. E.g. whether to send calendly links, etc.
 - `rewrite_preferences`: Any preferences for the tone of your emails
@@ -166,9 +165,6 @@ To control the prompts used for reflection (e.g. to populate memory) you can edi
 
 **Triage Logic**
 To control the logic used for triaging emails you can edit `eaia/main/triage.py`
-
-**Calendar Logic**
-To control the logic used for looking at available times on the calendar you can edit `eaia/main/find_meeting_time.py`
 
 **Tone & Style Logic**
 To control the logic used for the tone and style of emails you can edit `eaia/main/rewrite.py`

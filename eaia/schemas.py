@@ -59,27 +59,6 @@ class Ignore(BaseModel):
     ignore: bool
 
 
-class MeetingAssistant(BaseModel):
-    """Call this to have user's meeting assistant look at it."""
-
-    call: bool
-
-
-class SendCalendarInvite(BaseModel):
-    """Call this to send a calendar invite."""
-
-    emails: List[str] = Field(
-        description="List of emails to send the calendar invitation for. Do NOT make any emails up!"
-    )
-    title: str = Field(description="Name of the meeting")
-    start_time: str = Field(
-        description="Start time for the meeting, should be in `2024-07-01T14:00:00` format"
-    )
-    end_time: str = Field(
-        description="End time for the meeting, should be in `2024-07-01T14:00:00` format"
-    )
-
-
 # Needed to mix Pydantic with TypedDict
 def convert_obj(o, m):
     if isinstance(m, dict):

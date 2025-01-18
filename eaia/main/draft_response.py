@@ -9,8 +9,6 @@ from eaia.schemas import (
     NewEmailDraft,
     ResponseEmailDraft,
     Question,
-    MeetingAssistant,
-    SendCalendarInvite,
     Ignore,
     email_template,
 )
@@ -35,7 +33,6 @@ If people ask {name} if he can attend some event or meet with them, do not agree
 
 Remember, if you don't have enough information to respond, you can ask {name} for more information. Use the `Question` tool for this.
 Never just make things up! So if you do not know something, or don't know what {name} would prefer, don't hesitate to ask him.
-Never use the Question tool to ask {name} when they are free - instead, just ask the MeetingAssistant
 
 # Using the `ResponseEmailDraft` tool
 
@@ -47,25 +44,11 @@ When adding new recipients - only do that if {name} explicitly asks for it and y
 
 {response_preferences}
 
-# Using the `SendCalendarInvite` tool
-
-Sometimes you will want to schedule a calendar event. You can do this with the `SendCalendarInvite` tool.
-If you are sure that {name} would want to schedule a meeting, and you know that {name}'s calendar is free, you can schedule a meeting by calling the `SendCalendarInvite` tool. {name} trusts you to pick good times for meetings. You shouldn't ask {name} for what meeting times are preferred, but you should make sure he wants to meet. 
-
-{schedule_preferences}
-
 # Using the `NewEmailDraft` tool
 
 Sometimes you will need to start a new email thread. If you have all the necessary information for this, use the `NewEmailDraft` tool for this.
 
 If {name} asks someone if it's okay to introduce them, and they respond yes, you should draft a new email with that introduction.
-
-# Using the `MeetingAssistant` tool
-
-If the email is from a legitimate person and is working to schedule a meeting, call the MeetingAssistant to get a response from a specialist!
-You should not ask {name} for meeting times (unless the Meeting Assistant is unable to find any).
-If they ask for times from {name}, first ask the MeetingAssistant by calling the `MeetingAssistant` tool.
-Note that you should only call this if working to schedule a meeting - if a meeting has already been scheduled, and they are referencing it, no need to call this.
 
 # Background information: information you may find helpful when responding to emails or deciding what to do.
 
@@ -92,21 +75,13 @@ async def draft_response(state: State, config: RunnableConfig, store: BaseStore)
         NewEmailDraft,
         ResponseEmailDraft,
         Question,
-        MeetingAssistant,
-        SendCalendarInvite,
     ]
     messages = state.get("messages") or []
     if len(messages) > 0:
         tools.append(Ignore)
     prompt_config = get_config(config)
     namespace = (config["configurable"].get("assistant_id", "default"),)
-    key = "schedule_preferences"
-    result = await store.aget(namespace, key)
-    if result and "data" in result.value:
-        schedule_preferences = result.value["data"]
-    else:
-        await store.aput(namespace, key, {"data": prompt_config["schedule_preferences"]})
-        schedule_preferences = prompt_config["schedule_preferences"]
+
     key = "random_preferences"
     result = await store.aget(namespace, key)
     if result and "data" in result.value:
@@ -124,7 +99,6 @@ async def draft_response(state: State, config: RunnableConfig, store: BaseStore)
         await store.aput(namespace, key, {"data": prompt_config["response_preferences"]})
         response_preferences = prompt_config["response_preferences"]
     _prompt = EMAIL_WRITING_INSTRUCTIONS.format(
-        schedule_preferences=schedule_preferences,
         random_preferences=random_preferences,
         response_preferences=response_preferences,
         name=prompt_config["name"],
