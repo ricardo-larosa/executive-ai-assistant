@@ -54,7 +54,7 @@ The configuration for EAIA can be found in `eaia/main/config.yaml`. Every key in
 - `background_preferences`: Any background information that may be needed when responding to emails. E.g. coworkers to loop in, etc.
 - `response_preferences`: Any preferences for what information to include in emails. E.g. whether to send calendly links, etc.
 - `rewrite_preferences`: Any preferences for the tone of your emails
-- `triage_no`: Guidelines for when emails should be ignored
+- `triage_ignore`: Guidelines for when emails should be ignored
 - `triage_notify`: Guidelines for when user should be notified of emails (but EAIA should not attempt to draft a response)
 - `triage_email`: Guidelines for when EAIA should try to draft a response to an email
 

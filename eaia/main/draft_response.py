@@ -14,7 +14,7 @@ from eaia.schemas import (
 )
 from eaia.main.config import get_config
 
-EMAIL_WRITING_INSTRUCTIONS = """You are {full_name}'s executive assistant. You are a top-notch executive assistant who cares about {name} performing as well as possible.
+EMAIL_WRITING_INSTRUCTIONS = """You are {full_name}'s email assistant. You are a top-notch email assistant who cares about {name} performing as well as possible.
 
 {background}
 
@@ -38,9 +38,10 @@ Never just make things up! So if you do not know something, or don't know what {
 
 Next, if you have enough information to respond, you can draft an email for {name}. Use the `ResponseEmailDraft` tool for this.
 
-ALWAYS draft emails as if they are coming from {name}. Never draft them as "{name}'s assistant" or someone else.
-
-When adding new recipients - only do that if {name} explicitly asks for it and you know their emails. If you don't know the right emails to add in, then ask {name}. You do NOT need to add in people who are already on the email! Do NOT make up emails.
+## `ResponseEmailDraft` rules
+- ALWAYS draft emails as if they are coming from {name}. 
+- Never draft them as "{name}'s assistant" or someone else.
+- When adding new recipients - only do that if {name} explicitly asks for it and you know their emails. If you don't know the right emails to add in, then ask {name}. You do NOT need to add in people who are already on the email! Do NOT make up emails.
 
 {response_preferences}
 
@@ -48,11 +49,11 @@ When adding new recipients - only do that if {name} explicitly asks for it and y
 
 Sometimes you will need to start a new email thread. If you have all the necessary information for this, use the `NewEmailDraft` tool for this.
 
-If {name} asks someone if it's okay to introduce them, and they respond yes, you should draft a new email with that introduction.
+## `NewEmailDraft` rules
+- If {name} asks someone if it's okay to introduce them, and they respond yes, you should draft a new email with that introduction.
 
-# Background information: information you may find helpful when responding to emails or deciding what to do.
+"""
 
-{random_preferences}"""
 draft_prompt = """{instructions}
 
 Remember to call a tool correctly! Use the specified names exactly - not add `functions::` to the start. Pass all required arguments.
@@ -67,7 +68,7 @@ async def draft_response(state: State, config: RunnableConfig, store: BaseStore)
     model = config["configurable"].get("model", "gpt-4o")
     llm = ChatOpenAI(
         model=model,
-        temperature=0,
+        temperature=0.5,
         parallel_tool_calls=False,
         tool_choice="required",
     )
@@ -81,16 +82,6 @@ async def draft_response(state: State, config: RunnableConfig, store: BaseStore)
         tools.append(Ignore)
     prompt_config = get_config(config)
     namespace = (config["configurable"].get("assistant_id", "default"),)
-
-    key = "random_preferences"
-    result = await store.aget(namespace, key)
-    if result and "data" in result.value:
-        random_preferences = result.value["data"]
-    else:
-        await store.aput(
-            namespace, key, {"data": prompt_config["background_preferences"]}
-        )
-        random_preferences = prompt_config["background_preferences"]
     key = "response_preferences"
     result = await store.aget(namespace, key)
     if result and "data" in result.value:
@@ -99,11 +90,11 @@ async def draft_response(state: State, config: RunnableConfig, store: BaseStore)
         await store.aput(namespace, key, {"data": prompt_config["response_preferences"]})
         response_preferences = prompt_config["response_preferences"]
     _prompt = EMAIL_WRITING_INSTRUCTIONS.format(
-        random_preferences=random_preferences,
         response_preferences=response_preferences,
         name=prompt_config["name"],
         full_name=prompt_config["full_name"],
         background=prompt_config["background"],
+
     )
     input_message = draft_prompt.format(
         instructions=_prompt,

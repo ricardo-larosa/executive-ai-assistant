@@ -29,7 +29,7 @@ def route_after_triage(
 ) -> Literal["draft_response", "mark_as_read_node", "notify"]:
     if state["triage"].response == "email":
         return "draft_response"
-    elif state["triage"].response == "no":
+    elif state["triage"].response == "ignore":
         return "mark_as_read_node"
     elif state["triage"].response == "notify":
         return "notify"

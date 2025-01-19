@@ -21,7 +21,7 @@ class RespondTo(BaseModel):
     logic: str = Field(
         description="logic on WHY the response choice is the way it is", default=""
     )
-    response: Literal["no", "email", "notify", "question"] = "no"
+    response: Literal["ignore", "email", "notify", "question"] = "ignore"
 
 
 class ResponseEmailDraft(BaseModel):

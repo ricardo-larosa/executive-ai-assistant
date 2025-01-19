@@ -10,7 +10,7 @@ rewrite_preferences: |
   Parker AI has a few rules for how the company like e-mails to be written:
   - Formal tone
   - Every e-mail should have a signature "Parker AI, Inc."
-triage_no: |
+triage_ignore: |
   - e-mails that are not related to customer service
   - Marketing emails
   - Automated calendar invitations

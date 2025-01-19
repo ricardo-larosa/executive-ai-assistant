@@ -20,7 +20,7 @@ triage_prompt = """You are {full_name}'s executive assistant. You are a top-notc
 {name} gets lots of emails. Your job is to categorize the below email to see whether is it worth responding to.
 
 Emails that are not worth responding to:
-{triage_no}
+{triage_ignore}
 
 Emails that are worth responding to:
 {triage_email}
@@ -28,7 +28,7 @@ Emails that are worth responding to:
 There are also other things that {name} should know about, but don't require an email response. For these, you should notify {name} (using the `notify` response). Examples of this include:
 {triage_notify}
 
-For emails not worth responding to, respond `no`. For something where {name} should respond over email, respond `email`. If it's important to notify {name}, but no email is required, respond `notify`. \
+For emails not worth responding to, respond `ignore`. For something where {name} should respond over email, respond `email`. If it's important to notify {name}, but no email is required, respond `notify`. \
 
 If unsure, opt to `notify` {name} - you will learn from this in the future.
 
@@ -57,7 +57,7 @@ async def triage_input(state: State, config: RunnableConfig, store: BaseStore):
         name=prompt_config["name"],
         full_name=prompt_config["full_name"],
         background=prompt_config["background"],
-        triage_no=prompt_config["triage_no"],
+        trige_ignore=prompt_config["triage_ignore"],
         triage_email=prompt_config["triage_email"],
         triage_notify=prompt_config["triage_notify"],
     )

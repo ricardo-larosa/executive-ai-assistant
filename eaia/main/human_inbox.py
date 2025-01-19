@@ -131,7 +131,7 @@ async def send_message(state: State, config, store):
             ],
         }
         if memory:
-            await save_email(state, config, store, "no")
+            await save_email(state, config, store, "ignore")
     else:
         raise ValueError(f"Unexpected response: {response}")
 
@@ -197,7 +197,7 @@ async def send_email_draft(state: State, config, store):
             ],
         }
         if memory:
-            await save_email(state, config, store, "no")
+            await save_email(state, config, store, "ignore")
     elif response["type"] == "edit":
         msg = {
             "role": "assistant",
@@ -292,7 +292,7 @@ async def notify(state: State, config, store):
             ],
         }
         if memory:
-            await save_email(state, config, store, "no")
+            await save_email(state, config, store, "ignore")
     else:
         raise ValueError(f"Unexpected response: {response}")
 
