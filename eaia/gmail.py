@@ -22,8 +22,7 @@ from eaia.schemas import EmailData
 
 logger = logging.getLogger(__name__)
 _SCOPES = [
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/gmail.modify"
 ]
 _ROOT = Path(__file__).parent.absolute()
 _PORT = 54191
@@ -284,46 +283,83 @@ class CalInput(BaseModel):
         description="The days for which to retrieve events. Each day should be represented by dd-mm-yyyy string."
     )
 
-
-@tool(args_schema=CalInput)
-def get_events_for_days(date_strs: list[str]):
+def create_or_get_label(service, label_name: str):
     """
-    Retrieves events for a list of days. If you want to check for multiple days, call this with multiple inputs.
-
-    Input in the format of ['dd-mm-yyyy', 'dd-mm-yyyy']
-
+    Creates or retrieves a Gmail label ID.
+    
     Args:
-    date_strs: The days for which to retrieve events (dd-mm-yyyy string).
-
-    Returns: availability for those days.
+        service: The Gmail API service instance
+        label_name: Name of the label to create or get
+        
+    Returns:
+        str: The ID of the label
     """
+    try:
+        # List all labels to check if the label exists
+        results = service.users().labels().list(userId='me').execute()
+        labels = results.get('labels', [])
+        
+        # Check if label already exists
+        for label in labels:
+            if label['name'].lower() == label_name.lower():
+                return label['id']
+        
+        # If not found, create new label
+        label_object = {
+            'name': label_name,
+            'type': 'user',
+            'labelListVisibility': 'labelShow',
+            'messageListVisibility': 'show',
+            'color': {
+                'backgroundColor': '#666666',
+                'textColor': '#ffffff'
+            }
+        }
+        
+        created_label = service.users().labels().create(
+            userId='me',
+            body=label_object
+        ).execute()
+        
+        return created_label['id']
+        
+    except Exception as e:
+        logger.error(f"Error creating/getting label {label_name}: {str(e)}")
+        raise
 
-    creds = get_credentials(None, None)
-    service = build("calendar", "v3", credentials=creds)
-    results = ""
-    for date_str in date_strs:
-        # Convert the date string to a datetime.date object
-        day = datetime.strptime(date_str, "%d-%m-%Y").date()
-
-        start_of_day = datetime.combine(day, time.min).isoformat() + "Z"
-        end_of_day = datetime.combine(day, time.max).isoformat() + "Z"
-
-        events_result = (
-            service.events()
-            .list(
-                calendarId="primary",
-                timeMin=start_of_day,
-                timeMax=end_of_day,
-                singleEvents=True,
-                orderBy="startTime",
-            )
-            .execute()
-        )
-        events = events_result.get("items", [])
-
-        results += f"***FOR DAY {date_str}***\n\n" + print_events(events)
-    return results
-
+def mark_with_label(
+    message_id: str,
+    label_name: str,
+    gmail_token: str | None = None,
+    gmail_secret: str | None = None,
+):
+    """
+    Marks a Gmail message with a specified label.
+    
+    Args:
+        message_id: The ID of the message to mark
+        label_name: Name of the label to apply
+        gmail_token: Optional Gmail OAuth token
+        gmail_secret: Optional Gmail OAuth secret
+    """
+    creds = get_credentials(gmail_token, gmail_secret)
+    service = build("gmail", "v1", credentials=creds)
+    
+    try:
+        # Get or create the label
+        label_id = create_or_get_label(service, label_name)
+        
+        # Add the label to the message
+        service.users().messages().modify(
+            userId='me',
+            id=message_id,
+            body={'addLabelIds': [label_id]}
+        ).execute()
+        
+        logger.info(f"Successfully marked message {message_id} with label '{label_name}'")
+    except Exception as e:
+        logger.error(f"Error marking message with label '{label_name}': {str(e)}")
+        raise
 
 def format_datetime_with_timezone(dt_str, timezone="US/Pacific"):
     """
@@ -368,52 +404,3 @@ def print_events(events):
         result += f"Ends: {end}\n"
         result += "-" * 40 + "\n"
     return result
-
-
-def send_calendar_invite(
-    emails, title, start_time, end_time, email_address, timezone="PST"
-):
-    creds = get_credentials(None, None)
-    service = build("calendar", "v3", credentials=creds)
-
-    # Parse the start and end times
-    start_datetime = datetime.fromisoformat(start_time)
-    end_datetime = datetime.fromisoformat(end_time)
-    emails = list(set(emails + [email_address]))
-    event = {
-        "summary": title,
-        "start": {
-            "dateTime": start_datetime.isoformat(),
-            "timeZone": timezone,
-        },
-        "end": {
-            "dateTime": end_datetime.isoformat(),
-            "timeZone": timezone,
-        },
-        "attendees": [{"email": email} for email in emails],
-        "reminders": {
-            "useDefault": False,
-            "overrides": [
-                {"method": "email", "minutes": 24 * 60},
-                {"method": "popup", "minutes": 10},
-            ],
-        },
-        "conferenceData": {
-            "createRequest": {
-                "requestId": f"{title}-{start_datetime.isoformat()}",
-                "conferenceSolutionKey": {"type": "hangoutsMeet"},
-            }
-        },
-    }
-
-    try:
-        service.events().insert(
-            calendarId="primary",
-            body=event,
-            sendNotifications=True,
-            conferenceDataVersion=1,
-        ).execute()
-        return True
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return False

@@ -131,7 +131,7 @@ async def send_message(state: State, config, store):
             ],
         }
         if memory:
-            await save_email(state, config, store, "no")
+            await save_email(state, config, store, "ignore")
     else:
         raise ValueError(f"Unexpected response: {response}")
 
@@ -179,7 +179,7 @@ async def send_email_draft(state: State, config, store):
                 ]
                 + state["messages"],
                 "feedback": f"Error, {user} interrupted and gave this feedback: {response['args']}",
-                "prompt_types": ["tone", "email", "background", "calendar"],
+                "prompt_types": ["tone", "email", "background"],
                 "assistant_key": config["configurable"].get("assistant_id", "default"),
             }
             await LGC.runs.create(None, "multi_reflection_graph", input=rewrite_state)
@@ -197,7 +197,7 @@ async def send_email_draft(state: State, config, store):
             ],
         }
         if memory:
-            await save_email(state, config, store, "no")
+            await save_email(state, config, store, "ignore")
     elif response["type"] == "edit":
         msg = {
             "role": "assistant",
@@ -226,7 +226,7 @@ async def send_email_draft(state: State, config, store):
                     },
                 ],
                 "feedback": f"A better response would have been: {corrected}",
-                "prompt_types": ["tone", "email", "background", "calendar"],
+                "prompt_types": ["tone", "email", "background"],
                 "assistant_key": config["configurable"].get("assistant_id", "default"),
             }
             await LGC.runs.create(None, "multi_reflection_graph", input=rewrite_state)
@@ -274,7 +274,7 @@ async def notify(state: State, config, store):
                 ]
                 + state["messages"],
                 "feedback": f"{user} gave these instructions: {response['args']}",
-                "prompt_types": ["email", "background", "calendar"],
+                "prompt_types": ["email", "background"],
                 "assistant_key": config["configurable"].get("assistant_id", "default"),
             }
             await LGC.runs.create(None, "multi_reflection_graph", input=rewrite_state)
@@ -292,105 +292,7 @@ async def notify(state: State, config, store):
             ],
         }
         if memory:
-            await save_email(state, config, store, "no")
-    else:
-        raise ValueError(f"Unexpected response: {response}")
-
-    return {"messages": [msg]}
-
-
-@traceable
-async def send_cal_invite(state: State, config, store):
-    prompt_config = get_config(config)
-    memory = prompt_config["memory"]
-    user = prompt_config['name']
-    tool_call = state["messages"][-1].tool_calls[0]
-    request: HumanInterrupt = {
-        "action_request": {"action": tool_call["name"], "args": tool_call["args"]},
-        "config": {
-            "allow_ignore": True,
-            "allow_respond": True,
-            "allow_edit": True,
-            "allow_accept": True,
-        },
-        "description": _generate_email_markdown(state),
-    }
-    response = interrupt([request])[0]
-    _email_template = email_template.format(
-        email_thread=state["email"]["page_content"],
-        author=state["email"]["from_email"],
-        subject=state["email"]["subject"],
-        to=state["email"].get("to_email", ""),
-    )
-    if response["type"] == "response":
-        msg = {
-            "type": "tool",
-            "name": tool_call["name"],
-            "content": f"Error, {user} interrupted and gave this feedback: {response['args']}",
-            "tool_call_id": tool_call["id"],
-        }
-        if memory:
-            await save_email(state, config, store, "email")
-            rewrite_state = {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"Draft a response to this email:\n\n{_email_template}",
-                    }
-                ]
-                + state["messages"],
-                "feedback": f"{user} interrupted gave these instructions: {response['args']}",
-                "prompt_types": ["email", "background", "calendar"],
-                "assistant_key": config["configurable"].get("assistant_id", "default"),
-            }
-            await LGC.runs.create(None, "multi_reflection_graph", input=rewrite_state)
-    elif response["type"] == "ignore":
-        msg = {
-            "role": "assistant",
-            "content": "",
-            "id": state["messages"][-1].id,
-            "tool_calls": [
-                {
-                    "id": tool_call["id"],
-                    "name": "Ignore",
-                    "args": {"ignore": True},
-                }
-            ],
-        }
-        if memory:
-            await save_email(state, config, store, "no")
-    elif response["type"] == "edit":
-        msg = {
-            "role": "assistant",
-            "content": state["messages"][-1].content,
-            "id": state["messages"][-1].id,
-            "tool_calls": [
-                {
-                    "id": tool_call["id"],
-                    "name": tool_call["name"],
-                    "args": response["args"]["args"],
-                }
-            ],
-        }
-        if memory:
-            await save_email(state, config, store, "email")
-            rewrite_state = {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"Draft a response to this email:\n\n{_email_template}",
-                    }
-                ]
-                + state["messages"],
-                "feedback": f"{user} interrupted gave these instructions: {response['args']}",
-                "prompt_types": ["email", "background", "calendar"],
-                "assistant_key": config["configurable"].get("assistant_id", "default"),
-            }
-            await LGC.runs.create(None, "multi_reflection_graph", input=rewrite_state)
-    elif response["type"] == "accept":
-        if memory:
-            await save_email(state, config, store, "email")
-        return None
+            await save_email(state, config, store, "ignore")
     else:
         raise ValueError(f"Unexpected response: {response}")
 

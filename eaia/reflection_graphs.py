@@ -7,8 +7,7 @@ from langgraph.types import Command, Send
 
 TONE_INSTRUCTIONS = "Only update the prompt to include instructions on the **style and tone and format** of the response. Do NOT update the prompt to include anything about the actual content - only the style and tone and format. The user sometimes responds differently to different types of people - take that into account, but don't be too specific."
 RESPONSE_INSTRUCTIONS = "Only update the prompt to include instructions on the **content** of the response. Do NOT update the prompt to include anything about the tone or style or format of the response."
-SCHEDULE_INSTRUCTIONS = "Only update the prompt to include instructions on how to send calendar invites - eg when to send them, what title should be, length, time of day, etc"
-BACKGROUND_INSTRUCTIONS = "Only update the propmpt to include pieces of information that are relevant to being the user's assistant. Do not update the instructions to include anything about the tone of emails sent, when to send calendar invites. Examples of good things to include are (but are not limited to): people's emails, addresses, etc."
+BACKGROUND_INSTRUCTIONS = "Only update the propmpt to include pieces of information that are relevant to being the user's assistant. Do not update the instructions to include anything about the tone of emails sent. Examples of good things to include are (but are not limited to): people's emails, addresses, etc."
 
 
 def get_trajectory_clean(messages):
@@ -104,19 +103,16 @@ MEMORY_TO_UPDATE = {
     "tone": "Instruction about the tone and style and format of the resulting email. Update this if you learn new information about the tone in which the user likes to respond that may be relevant in future emails.",
     "background": "Background information about the user. Update this if you learn new information about the user that may be relevant in future emails",
     "email": "Instructions about the type of content to be included in email. Update this if you learn new information about how the user likes to respond to emails (not the tone, and not information about the user, but specifically about how or when they like to respond to emails) that may be relevant in the future.",
-    "calendar": "Instructions about how to send calendar invites (including title, length, time, etc). Update this if you learn new information about how the user likes to schedule events that may be relevant in future emails.",
 }
 MEMORY_TO_UPDATE_KEYS = {
     "tone": "rewrite_instructions",
     "background": "random_preferences",
     "email": "response_preferences",
-    "calendar": "schedule_preferences",
 }
 MEMORY_TO_UPDATE_INSTRUCTIONS = {
     "tone": TONE_INSTRUCTIONS,
     "background": BACKGROUND_INSTRUCTIONS,
     "email": RESPONSE_INSTRUCTIONS,
-    "calendar": SCHEDULE_INSTRUCTIONS,
 }
 
 CHOOSE_MEMORY_PROMPT = """You are helping an AI agent improve. You can do this by changing prompts.
