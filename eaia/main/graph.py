@@ -18,6 +18,7 @@ from eaia.main.human_inbox import (
 from eaia.gmail import (
     send_email,
     mark_as_read,
+    mark_with_label
 )
 from eaia.schemas import (
     State,
@@ -26,11 +27,12 @@ from eaia.schemas import (
 
 def route_after_triage(
     state: State,
-) -> Literal["draft_response", "mark_as_read_node", "notify"]:
+) -> Literal["draft_response", "mark_as_ignored_node","notify"]:
     if state["triage"].response == "email":
         return "draft_response"
     elif state["triage"].response == "ignore":
-        return "mark_as_read_node"
+        # return "mark_as_read_node"
+        return "mark_as_ignored_node"
     elif state["triage"].response == "notify":
         return "notify"
     elif state["triage"].response == "question":
@@ -119,6 +121,9 @@ def send_email_node(state, config):
 def mark_as_read_node(state):
     mark_as_read(state["email"]["id"])
 
+def mark_as_ignored_node(state):
+    mark_with_label(state["email"]["id"],"Ignored")
+
 
 def human_node(state: State):
     pass
@@ -136,6 +141,7 @@ graph_builder.add_node(draft_response)
 graph_builder.add_node(send_message)
 graph_builder.add_node(rewrite)
 graph_builder.add_node(mark_as_read_node)
+graph_builder.add_node(mark_as_ignored_node)
 graph_builder.add_node(send_email_draft)
 graph_builder.add_node(send_email_node)
 graph_builder.add_node(bad_tool_name)
@@ -148,6 +154,7 @@ graph_builder.add_edge("bad_tool_name", "draft_response")
 graph_builder.add_edge("send_email_node", "mark_as_read_node")
 graph_builder.add_edge("rewrite", "send_email_draft")
 graph_builder.add_edge("send_email_draft", "human_node")
+graph_builder.add_edge("mark_as_ignored_node","mark_as_read_node")
 graph_builder.add_edge("mark_as_read_node", END)
 graph_builder.add_edge("notify", "human_node")
 graph_builder.add_conditional_edges("human_node", enter_after_human)

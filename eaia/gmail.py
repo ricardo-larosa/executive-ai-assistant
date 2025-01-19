@@ -283,6 +283,83 @@ class CalInput(BaseModel):
         description="The days for which to retrieve events. Each day should be represented by dd-mm-yyyy string."
     )
 
+def create_or_get_label(service, label_name: str):
+    """
+    Creates or retrieves a Gmail label ID.
+    
+    Args:
+        service: The Gmail API service instance
+        label_name: Name of the label to create or get
+        
+    Returns:
+        str: The ID of the label
+    """
+    try:
+        # List all labels to check if the label exists
+        results = service.users().labels().list(userId='me').execute()
+        labels = results.get('labels', [])
+        
+        # Check if label already exists
+        for label in labels:
+            if label['name'].lower() == label_name.lower():
+                return label['id']
+        
+        # If not found, create new label
+        label_object = {
+            'name': label_name,
+            'type': 'user',
+            'labelListVisibility': 'labelShow',
+            'messageListVisibility': 'show',
+            'color': {
+                'backgroundColor': '#666666',
+                'textColor': '#ffffff'
+            }
+        }
+        
+        created_label = service.users().labels().create(
+            userId='me',
+            body=label_object
+        ).execute()
+        
+        return created_label['id']
+        
+    except Exception as e:
+        logger.error(f"Error creating/getting label {label_name}: {str(e)}")
+        raise
+
+def mark_with_label(
+    message_id: str,
+    label_name: str,
+    gmail_token: str | None = None,
+    gmail_secret: str | None = None,
+):
+    """
+    Marks a Gmail message with a specified label.
+    
+    Args:
+        message_id: The ID of the message to mark
+        label_name: Name of the label to apply
+        gmail_token: Optional Gmail OAuth token
+        gmail_secret: Optional Gmail OAuth secret
+    """
+    creds = get_credentials(gmail_token, gmail_secret)
+    service = build("gmail", "v1", credentials=creds)
+    
+    try:
+        # Get or create the label
+        label_id = create_or_get_label(service, label_name)
+        
+        # Add the label to the message
+        service.users().messages().modify(
+            userId='me',
+            id=message_id,
+            body={'addLabelIds': [label_id]}
+        ).execute()
+        
+        logger.info(f"Successfully marked message {message_id} with label '{label_name}'")
+    except Exception as e:
+        logger.error(f"Error marking message with label '{label_name}': {str(e)}")
+        raise
 
 def format_datetime_with_timezone(dt_str, timezone="US/Pacific"):
     """
