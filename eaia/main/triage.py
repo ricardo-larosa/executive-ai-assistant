@@ -57,7 +57,7 @@ async def triage_input(state: State, config: RunnableConfig, store: BaseStore):
         name=prompt_config["name"],
         full_name=prompt_config["full_name"],
         background=prompt_config["background"],
-        trige_ignore=prompt_config["triage_ignore"],
+        triage_ignore=prompt_config["triage_ignore"],
         triage_email=prompt_config["triage_email"],
         triage_notify=prompt_config["triage_notify"],
     )
